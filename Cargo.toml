@@ -1,0 +1,14 @@
+[package]
+name = "marshmallow_fm"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4"
+
+glam = "0.20.5"
+luminance = { version = "0.43.2", features = ["derive"] }
+
+gpu_terminal = { path = "gpu_terminal" }
