@@ -1,3 +1,5 @@
+use glam::*;
+
 use luminance::{Semantics, Vertex};
 use luminance::context::GraphicsContext;
 use luminance::tess::{Tess, Mode, TessIndex};
@@ -36,8 +38,25 @@ const TRI_VERTICES: [Vertex; 3] = [
     ),
 ];
 
+pub struct Transform {
+	pub position: Vec3,
+	pub scale: Vec3,
+	pub rotation: Quat,
+}
+
+impl Default for Transform {
+	fn default() -> Self {
+		Self {
+			position: vec3(0.0,0.0,0.0),
+			scale: vec3(1.0,1.0,1.0),
+			rotation: Quat::IDENTITY,
+		}
+	}
+}
+
 pub struct Mesh {
 	pub(crate) tess: Tess<crate::LuminanceBackend, Vertex, u32>,
+	pub transform: Transform,
 }
 
 impl Mesh {
@@ -50,6 +69,7 @@ impl Mesh {
 			.build().expect("Failed to construct mesh tesselation!");
 		Self {
 			tess: tess,
+			transform: Transform::default(),
 		}
 	}
 

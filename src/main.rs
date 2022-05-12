@@ -10,6 +10,7 @@ fn main() {
 
 	let mesh = renderer.create_mesh().triangle();
 	let mut shader = renderer.compile_shader(VS, FS);
+	let camera = renderer.create_camera().build();
 
 	'app: loop {
 		let events = renderer.get_events();
@@ -17,7 +18,7 @@ fn main() {
 			match event {
 				WindowEvent::Quit => break 'app,
 				WindowEvent::RequestRedraw => {
-					let mut frame = renderer.begin_frame();
+					let mut frame = renderer.begin_frame(&camera);
 					frame.draw_with_shader(&mut shader, vec![&mesh]);
 					frame.finish();
 				},

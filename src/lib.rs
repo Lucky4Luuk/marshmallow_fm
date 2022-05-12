@@ -32,10 +32,11 @@ impl Renderer {
 		self.backend.resolution
 	}
 
-	pub fn begin_frame(&mut self) -> Frame {
+	pub fn begin_frame<'frm>(&'frm mut self, camera: &'frm camera::Camera) -> Frame<'frm> {
 		Frame {
 			renderer: self,
 			consumed: false,
+			camera: camera,
 			calls: Vec::new(),
 		}
 	}
@@ -44,6 +45,7 @@ impl Renderer {
 pub struct Frame<'rnd> {
 	renderer: &'rnd mut Renderer,
 	consumed: bool,
+	camera: &'rnd camera::Camera,
 	calls: Vec<(Vec<&'rnd mesh::Mesh>, &'rnd mut shader::Shader)>,
 }
 
@@ -53,9 +55,9 @@ impl<'rnd> Frame<'rnd> {
 	}
 
 	pub fn finish(mut self) {
-		let meshes_conv: Vec<(Vec<&Tess<_,_,_>>, &mut Program<_,_,_,_>)> = {
+		let meshes_conv: Vec<(Vec<(&Tess<_,_,_>, (Vec3, Vec3, Quat))>, &mut Program<_,_,_,_>)> = {
 			self.calls.iter_mut().map(|(meshes, shader)| {
-				let tesses: Vec<&Tess<_,_,_>> = meshes.iter().map(|m| &m.tess).collect();
+				let tesses: Vec<(&Tess<_,_,_>, (Vec3, Vec3, Quat))> = meshes.iter().map(|m| (&m.tess, (m.transform.position, m.transform.scale, m.transform.rotation))).collect();
 				(tesses, &mut shader.program)
 			}).collect()
 		};

@@ -1,5 +1,7 @@
 use std::io::{stdout, Write};
 
+use glam::*;
+
 pub use luminance_surfman_offscreen::*;
 
 use luminance::context::GraphicsContext as _;
@@ -75,7 +77,7 @@ impl Backend {
 	}
 
 	pub fn render<V: Vertex, I: TessIndex, Sem: Semantics>(&mut self,
-		calls: Vec<(Vec<&Tess<LuminanceBackend, V, I>>, &mut Program<LuminanceBackend, Sem, (), ()>)>)
+		calls: Vec<(Vec<(&Tess<LuminanceBackend, V, I>, (Vec3, Vec3, Quat))>, &mut Program<LuminanceBackend, Sem, (), ()>)>)
 	{
 		{
 			let back_buffer = self.surface.back_buffer().expect("Failed to acquire back buffer!");
@@ -87,7 +89,7 @@ impl Backend {
 					|_, mut shd_gate| {
 						for (meshes, program) in calls {
 							shd_gate.shade(program, |_, _, mut rdr_gate| {
-								for m in meshes {
+								for (m, (p,s,r)) in meshes {
 									rdr_gate.render(&RenderState::default(), |mut tess_gate| {
 										tess_gate.render(m)
 									})?;
