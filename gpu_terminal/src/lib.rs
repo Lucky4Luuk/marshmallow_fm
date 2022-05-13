@@ -26,6 +26,8 @@ use crossterm::{
 };
 
 const PALETTE: [char; 8] = [' ','.',':','=','o','x','O','X'];
+//const OUTLINE: [char; 8] = ['|','/','-','\\','|','/','-','\\'];
+const OUTLINE: [char; 8] = ['0','=','/','|','\\','=','6','7'];
 
 pub enum WindowEvent {
 	Quit,
@@ -121,15 +123,18 @@ impl Backend {
 		for y in 0..height {
 			for x in 0..width {
 				let i = x + y * width;
-				let pixel = &pixels[i*4..i*4+4];
-				let r = pixel[0];
-				let g = pixel[1];
-				let b = pixel[2];
-				let a = pixel[3];
-				let luminance = (r as f32 / 255.0)*0.299 + (g as f32 / 255.0)*0.587 + (b as f32 / 255.0)*0.114;
+				let pixel = sample(&pixels,width,height, x,y);
+				let (edge_rot, is_edge) = if pixel.w > 0.0 { sobel(&pixels,width,height, x,y) } else { (0.0, false) };
+				let r = pixel.x;
+				let g = pixel.y;
+				let b = pixel.z;
+				let a = pixel.w;
 				//let c = PALETTE[((luminance * 8.0) as u8).min(7) as usize];
-				let c = PALETTE[a as usize * 7 / 255];
-				stdout.queue(style::PrintStyledContent(c.with(style::Color::Rgb { r: r, g: g, b: b })));
+				let mut c = PALETTE[(a * 7.0) as usize];
+				if is_edge {
+					c = OUTLINE[((edge_rot + 1.0)*3.5).clamp(0.0,7.0) as usize];
+				}
+				stdout.queue(style::PrintStyledContent(c.with(style::Color::Rgb { r: (r*255.0)as u8, g: (g*255.0)as u8, b: (b*255.0)as u8 })));
 			}
 		}
 		stdout.flush();
@@ -163,3 +168,46 @@ impl std::ops::DerefMut for Backend {
 	}
 }
 
+fn sample(pixels: &Vec<u8>, width: usize, height: usize, x: usize, y: usize) -> Vec4 {
+	let i = x.clamp(0,width-1) + y.clamp(0,height-1) * width;
+	let pixel = &pixels[i*4..i*4+4];
+	vec4(pixel[0] as f32 / 255.0, pixel[1] as f32 / 255.0, pixel[2] as f32 / 255.0, pixel[3] as f32 / 255.0)
+}
+
+fn sample_lumi(pixels: &Vec<u8>, width: usize, height: usize, x: usize, y: usize) -> f32 {
+	let pixel = sample(pixels,width,height, x,y);
+	pixel.x*0.299 + pixel.y*0.587 + pixel.z*0.114
+}
+
+fn sobel_kernel(pixels: &Vec<u8>, width: usize, height: usize, x: usize, y: usize) -> [f32; 9] {
+	let mut n = [0.0; 9];
+	n[0] = sample_lumi(pixels,width,height, x-1,y-1);
+	n[1] = sample_lumi(pixels,width,height, x  ,y-1);
+	n[2] = sample_lumi(pixels,width,height, x+1,y-1);
+	n[3] = sample_lumi(pixels,width,height, x-1,y  );
+	n[4] = sample_lumi(pixels,width,height, x  ,y  );
+	n[5] = sample_lumi(pixels,width,height, x+1,y  );
+	n[6] = sample_lumi(pixels,width,height, x-1,y+1);
+	n[7] = sample_lumi(pixels,width,height, x  ,y+1);
+	n[8] = sample_lumi(pixels,width,height, x+1,y+1);
+	n
+}
+
+fn sobel(pixels: &Vec<u8>, width: usize, height: usize, x: usize, y: usize) -> (f32,bool) {
+	let n = sobel_kernel(pixels,width,height, x,y);
+	let sobel_edge_h = n[2] + (2.0*n[5]) + n[8] - (n[0] + (2.0*n[3]) + n[6]);
+	let sobel_edge_v = n[0] + (2.0*n[1]) + n[2] - (n[6] + (2.0*n[7]) + n[8]);
+	//((sobel_edge_h * sobel_edge_h) + (sobel_edge_v * sobel_edge_v)).powf(0.5).clamp(vec4(0.0,0.0,0.0,0.0), vec4(1.0,1.0,1.0,1.0))
+	//sobel_edge_v.clamp(vec4(0.0,0.0,0.0,0.0), vec4(1.0,1.0,1.0,1.0))
+	//(sobel_edge_h + sobel_edge_v).normalize().clamp(vec4(0.0,0.0,0.0,0.0), vec4(1.0,1.0,1.0,1.0))
+	let is_edge = if sobel_edge_h.abs() + sobel_edge_v.abs() > 0.75 { true } else { false };
+	let h = sobel_edge_h;
+	let v = sobel_edge_v;
+	//let d = v.atan2(h) / 3.15;
+	//let d = (d + 1.0);
+	//let d = (d + 0.5) % 2.0;
+	//let d = (d - 1.0);
+	//let d = vec2(h,v).dot(vec2(0.0,1.0));
+	let mut d = (v/h).atan() / 3.14;
+	(d,is_edge)
+}

@@ -33,6 +33,6 @@ fn main() {
 		}
 
 		let t = start.elapsed().as_secs_f32();
-		mesh.transform.rotation = Quat::from_rotation_z(t % 360.0);
+		mesh.transform.rotation = Quat::from_rotation_z((t*0.5) % 360.0);
 	}
 }
