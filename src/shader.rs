@@ -1,9 +1,7 @@
 use luminance::shader::Program;
 use luminance::context::GraphicsContext;
-use luminance::UniformInterface;
 
 use crate::mesh::VertexSemantics;
-
 use crate::ShaderInterface;
 
 pub struct Shader {

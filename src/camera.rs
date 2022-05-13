@@ -74,7 +74,7 @@ impl CameraBuilder {
 		self
 	}
 
-	pub fn with_pos_target_up(mut self, eye: Vec3, target: Vec3, up: Vec3) -> Self {
+	pub fn with_pos_target_up(self, eye: Vec3, target: Vec3, up: Vec3) -> Self {
 		self.with_position(eye).with_target(target).with_up(up)
 	}
 
