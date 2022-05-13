@@ -44,6 +44,12 @@ pub struct Transform {
 	pub rotation: Quat,
 }
 
+impl Transform {
+	pub(crate) fn mat(&self) -> Mat4 {
+		Mat4::from_scale_rotation_translation(self.scale, self.rotation, self.position)
+	}
+}
+
 impl Default for Transform {
 	fn default() -> Self {
 		Self {

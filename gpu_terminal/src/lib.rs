@@ -7,7 +7,12 @@ pub use luminance_surfman_offscreen::*;
 use luminance::context::GraphicsContext as _;
 use luminance::pipeline::PipelineState;
 use luminance::tess::{Tess, TessIndex};
-use luminance::shader::Program;
+use luminance::shader::{
+	Program,
+	Uniform,
+	types::{Mat44 as UniMat4, Vec3 as UniVec3},
+};
+use luminance::UniformInterface;
 use luminance::vertex::{Vertex, Semantics};
 use luminance::render_state::RenderState;
 
@@ -27,6 +32,11 @@ pub enum WindowEvent {
 	RequestRedraw,
 }
 
+#[derive(UniformInterface)]
+pub struct ShaderInterface {
+	mvp: Uniform<UniMat4<f32>>,
+}
+
 pub struct Backend {
 	surface: SurfmanSurface,
 	pub resolution: (usize, usize),
@@ -36,6 +46,7 @@ pub struct Backend {
 impl Backend {
 	pub fn new(_win_title: &str, _win_size: (usize, usize)) -> Self {
 		let (width, height) = size().expect("Failed to query terminal size!");
+		let surface = SurfmanSurface::offscreen((width as usize, height as usize)).expect("Failed to create surface!");
 
 		execute!(
 			stdout(),
@@ -48,7 +59,7 @@ impl Backend {
 		).expect("Failed to hide cursor!");
 
 		Self {
-			surface: SurfmanSurface::offscreen((width as usize, height as usize), ShaderVersion::Gles3).expect("Failed to create surface!"),
+			surface: surface,
 			resolution: (width as usize, height as usize),
 			target_ms: 1000.0/60.0,
 		}
@@ -77,8 +88,9 @@ impl Backend {
 	}
 
 	pub fn render<V: Vertex, I: TessIndex, Sem: Semantics>(&mut self,
-		calls: Vec<(Vec<(&Tess<LuminanceBackend, V, I>, (Vec3, Vec3, Quat))>, &mut Program<LuminanceBackend, Sem, (), ()>)>)
-	{
+		calls: Vec<(Vec<(&Tess<LuminanceBackend, V, I>, Mat4)>,
+			   &mut Program<LuminanceBackend, Sem, (), ShaderInterface>)>
+	) {
 		{
 			let back_buffer = self.surface.back_buffer().expect("Failed to acquire back buffer!");
 			let render = self.surface
@@ -88,8 +100,9 @@ impl Backend {
 					&PipelineState::default().set_clear_color([0.0, 0.0, 0.0, 0.0]),
 					|_, mut shd_gate| {
 						for (meshes, program) in calls {
-							shd_gate.shade(program, |_, _, mut rdr_gate| {
-								for (m, (p,s,r)) in meshes {
+							shd_gate.shade(program, |mut iface, uni, mut rdr_gate| {
+								for (m, mvp) in meshes {
+									iface.set(&uni.mvp, UniMat4::new(mvp.to_cols_array_2d()));
 									rdr_gate.render(&RenderState::default(), |mut tess_gate| {
 										tess_gate.render(m)
 									})?;

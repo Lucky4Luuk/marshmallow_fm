@@ -8,6 +8,7 @@ use luminance::tess::{Tess, TessIndex};
 use gpu_terminal::Backend;
 pub use gpu_terminal::WindowEvent;
 pub(crate) use gpu_terminal::LuminanceBackend;
+pub(crate) use gpu_terminal::ShaderInterface;
 
 pub mod mesh;
 pub mod shader;
@@ -33,10 +34,13 @@ impl Renderer {
 	}
 
 	pub fn begin_frame<'frm>(&'frm mut self, camera: &'frm camera::Camera) -> Frame<'frm> {
+		let (width, height) = self.backend.resolution;
+		let aspect_ratio = width as f32 / height as f32;
 		Frame {
 			renderer: self,
 			consumed: false,
 			camera: camera,
+			aspect_ratio: aspect_ratio,
 			calls: Vec::new(),
 		}
 	}
@@ -46,6 +50,7 @@ pub struct Frame<'rnd> {
 	renderer: &'rnd mut Renderer,
 	consumed: bool,
 	camera: &'rnd camera::Camera,
+	aspect_ratio: f32,
 	calls: Vec<(Vec<&'rnd mesh::Mesh>, &'rnd mut shader::Shader)>,
 }
 
@@ -55,9 +60,10 @@ impl<'rnd> Frame<'rnd> {
 	}
 
 	pub fn finish(mut self) {
-		let meshes_conv: Vec<(Vec<(&Tess<_,_,_>, (Vec3, Vec3, Quat))>, &mut Program<_,_,_,_>)> = {
+		let vp = self.camera.view_proj(self.aspect_ratio);
+		let meshes_conv: Vec<(Vec<(&Tess<_,_,_>, Mat4)>, &mut Program<_,_,_,_>)> = {
 			self.calls.iter_mut().map(|(meshes, shader)| {
-				let tesses: Vec<(&Tess<_,_,_>, (Vec3, Vec3, Quat))> = meshes.iter().map(|m| (&m.tess, (m.transform.position, m.transform.scale, m.transform.rotation))).collect();
+				let tesses: Vec<(&Tess<_,_,_>, Mat4)> = meshes.iter().map(|m| (&m.tess, vp * m.transform.mat())).collect();
 				(tesses, &mut shader.program)
 			}).collect()
 		};

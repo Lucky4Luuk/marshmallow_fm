@@ -8,6 +8,6 @@ edition = "2021"
 [dependencies]
 glam = "0.20.5"
 crossterm = "0.23.2"
-luminance = "0.43.2"
-# luminance-surfman-offscreen = { path = "luminance-surfman-offscreen" }
-luminance-surfman-offscreen = { git = "https://github.com/Lucky4Luuk/luminance-surfman-offscreen.git" }
+luminance = "0.47"
+luminance-surfman-offscreen = { path = "luminance-surfman-offscreen" }
+# luminance-surfman-offscreen = { git = "https://github.com/Lucky4Luuk/luminance-surfman-offscreen.git" }

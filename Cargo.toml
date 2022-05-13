@@ -9,6 +9,6 @@ edition = "2021"
 log = "0.4"
 
 glam = "0.20.5"
-luminance = { version = "0.43.2", features = ["derive"] }
+luminance = { version = "0.47", features = ["derive"] }
 
 gpu_terminal = { path = "gpu_terminal" }

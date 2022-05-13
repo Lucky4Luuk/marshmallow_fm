@@ -1,5 +1,9 @@
 // Test file for marshmallow_fm
 
+use std::time::Instant;
+
+use glam::*;
+
 use marshmallow_fm::*;
 
 const VS: &str = include_str!("../shaders/vs.glsl");
@@ -8,9 +12,11 @@ const FS: &str = include_str!("../shaders/fs.glsl");
 fn main() {
 	let mut renderer = Renderer::new("marshmallow_fm", (1280, 720));
 
-	let mesh = renderer.create_mesh().triangle();
+	let start = Instant::now();
+
+	let mut mesh = renderer.create_mesh().triangle();
 	let mut shader = renderer.compile_shader(VS, FS);
-	let camera = renderer.create_camera().build();
+	let camera = renderer.create_camera().with_projection(camera::Projection::Orthographic(2.0)).build();
 
 	'app: loop {
 		let events = renderer.get_events();
@@ -25,5 +31,8 @@ fn main() {
 				_ => {},
 			}
 		}
+
+		let t = start.elapsed().as_secs_f32();
+		mesh.transform.rotation = Quat::from_rotation_z(t % 360.0);
 	}
 }
